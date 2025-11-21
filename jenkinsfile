@@ -1,0 +1,109 @@
+pipeline {
+    agent { label 'ansible' }
+
+    options {
+        timeout(time: 15, unit: "MINUTES")
+        disableConcurrentBuilds()
+    }
+
+    stages {
+
+        stage("Git Clone") {
+            steps {
+                git main: 'development',
+                    credentialsId: 'GitHub_Credentials',
+                    url: 'https://github.com/onyekaoffodum/student-reg-webapp-ops.git'
+            }
+        }
+
+        stage("Ping Tomcat Server") {
+            steps {
+                withCredentials([file(credentialsId: 'TomcatServer_SSH_Credential', variable: 'pem')]) {
+                    sh """
+                    ansible tomcatServers \
+                    -i hosts \
+                    -m ping \
+                    -e ansible_ssh_private_key_file=${pem} \
+                    --ssh-common-args='-o StrictHostKeyChecking=no'
+                    """
+                }
+            }
+        }
+
+        stage("Install Software") {
+            steps {
+                withCredentials([file(credentialsId: 'TomcatServer_SSH_Credential', variable: 'pem')]) {
+                    sh """
+                    ansible-playbook \
+                    -i hosts \
+                    installTomcat.yaml \
+                    -e ansible_ssh_private_key_file=${pem} \
+                    --ssh-common-args='-o StrictHostKeyChecking=no'
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            sendEmail()
+            sendSlack()
+            cleanWs()
+        }
+    }
+}
+
+def sendEmail() {
+
+    def subject = "Configuration Task Completed - ${env.JOB_NAME} Build #${env.BUILD_NUMBER}"
+
+    def body = """
+    <html>
+    <body style="font-family: Arial;">
+
+    <h2>Automation Task Summary</h2>
+
+    <p>Hello,</p>
+
+    <p>The Jenkins job has completed the server configuration task.  
+    Details of the execution are below:</p>
+
+    <ul>
+        <li><b>Job:</b> ${env.JOB_NAME}</li>
+        <li><b>Build Number:</b> ${env.BUILD_NUMBER}</li>
+        <li><b>Executor Node:</b> ${env.NODE_NAME}</li>
+        <li><b>Build URL:</b> <a href="${env.BUILD_URL}console">View Console Output</a></li>
+    </ul>
+
+    <p>This installation used configuration variables defined inside the Ansible playbook.</p>
+
+    <br>
+    <p style="font-size:12px;">Jenkins Notification System</p>
+
+    </body>
+    </html>
+    """
+
+    emailext(
+        subject: subject,
+        body: body,
+        mimeType: 'text/html',
+        to: "sandieji@rocketmail.com"
+    )
+}
+
+def sendSlack() {
+
+    def message = """
+*Configuration Task Completed*
+• Job: ${env.JOB_NAME}
+• Build: #${env.BUILD_NUMBER}
+• Console Output: ${env.BUILD_URL}console
+"""
+
+    slackSend(
+        channel: "#lic-app-team",
+        message: message
+    )
+}

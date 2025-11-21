@@ -1,0 +1,134 @@
+---
+# tasks file for tomcat
+#
+# ---------------------------
+# Prepare environment
+# ---------------------------
+- block:
+    - name: Ensure /opt exists
+      file:
+        path: /opt
+        state: directory
+        mode: '0755'
+
+    - name: Install wget
+      package:
+        name: wget
+        state: present
+
+# ---------------------------
+# Install Java
+# ---------------------------
+- block:
+    - name: Download Java JDK
+      get_url:
+        url: "{{ java_url }}"
+        dest: "/opt/{{ java_archive }}"
+        mode: '0644'
+
+    - name: Extract Java to directory
+      unarchive:
+        src: "/opt/{{ java_archive }}"
+        dest: "{{ java_dir }}"
+        remote_src: yes
+        extra_opts: [--strip-components=1]
+        creates: "{{ java_dir }}/bin/java"
+
+    - name: Remove Java archive
+      file:
+        path: "/opt/{{ java_archive }}"
+        state: absent
+
+    - name: Set ownership of Java
+      file:
+        path: "{{ java_dir }}"
+        owner: "{{ tomcat_user_name }}"
+        group: "{{ tomcat_group_name }}"
+        state: directory
+        recurse: yes
+
+# ---------------------------
+# Install Tomcat
+# ---------------------------
+- block:
+    - name: Download Tomcat
+      get_url:
+        url: "{{ tomcat_url }}"
+        dest: "/opt/{{ tomcat_archive }}"
+        mode: '0644'
+
+    - name: Extract Tomcat
+      unarchive:
+        src: "/opt/{{ tomcat_archive }}"
+        dest: "{{ tomcat_dir }}"
+        remote_src: yes
+        extra_opts: [--strip-components=1]
+        creates: "{{ tomcat_dir }}/bin/startup.sh"
+
+    - name: Remove Tomcat archive
+      file:
+        path: "/opt/{{ tomcat_archive }}"
+        state: absent
+
+    - name: Set ownership of Tomcat
+      file:
+        path: "{{ tomcat_dir }}"
+        owner: "{{ tomcat_user_name }}"
+        group: "{{ tomcat_group_name }}"
+        state: directory
+        recurse: yes
+
+    - name: Ensure scripts are executable
+      file:
+        path: "{{ tomcat_dir }}/bin"
+        mode: '0755'
+        recurse: yes
+
+# ---------------------------
+# Set JAVA_HOME and PATH
+# ---------------------------
+- block:
+    - name: Configure environment variables
+      lineinfile:
+        path: /etc/profile
+        line: "{{ item }}"
+        state: present
+      loop:
+        - 'export JAVA_HOME={{ java_dir }}'
+        - 'export PATH=$PATH:$JAVA_HOME/bin'
+
+# ---------------------------
+# Enable remote access for Manager / Host Manager
+# ---------------------------
+- name: Remove IP restriction for Manager/Host Manager
+  replace:
+    path: "{{ item }}"
+    regexp: '(<Valve className="org\.apache\.catalina\.valves\.RemoteAddrValve"[\s\S]*?\/>)'
+    replace: '<!-- \1 -->'
+  loop:
+    - "{{ tomcat_dir }}/webapps/manager/META-INF/context.xml"
+    - "{{ tomcat_dir }}/webapps/host-manager/META-INF/context.xml"
+  notify: Restart Tomcat
+
+# ---------------------------
+# Add admin user to tomcat-users.xml
+# ---------------------------
+- name: Add Tomcat user to tomcat-users.xml
+  lineinfile:
+    path: "{{ tomcat_users_file }}"
+    insertafter: '</tomcat-users>'
+    line: '<user username="{{ tomcat_user }}" password="{{ tomcat_user_password }}" roles="{{ tomcat_user_roles }}"/>'
+    state: present
+    create: yes
+  notify: Restart Tomcat
+
+# ---------------------------
+# Create systemd service for Tomcat
+# ---------------------------
+- name: Create systemd service for Tomcat
+  template:
+    src: tomcat.service.j2
+    dest: /etc/systemd/system/tomcat.service
+    mode: "0644"
+  notify: Restart Tomcat
+

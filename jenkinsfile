@@ -10,7 +10,7 @@ pipeline {
 
         stage("Git Clone") {
             steps {
-                git main: 'development',
+                git branch: 'main',
                     credentialsId: 'GitHub_Credentials',
                     url: 'https://github.com/onyekaoffodum/student-reg-webapp-ops.git'
             }
@@ -18,29 +18,27 @@ pipeline {
 
         stage("Ping Tomcat Server") {
             steps {
-                withCredentials([file(credentialsId: 'TomcatServer_SSH_Credential', variable: 'pem')]) {
-                    sh """
-                    ansible tomcatServers \
-                    -i hosts \
-                    -m ping \
-                    -e ansible_ssh_private_key_file=${pem} \
-                    --ssh-common-args='-o StrictHostKeyChecking=no'
-                    """
-                }
+                sshagent(['TomcatServer_SSH_Credential']) {
+    sh """
+    ansible tomcatServers \
+    -i hosts \
+    -m ping \
+    --ssh-common-args='-o StrictHostKeyChecking=no'
+    """
+}
             }
         }
 
-        stage("Install Software") {
+        stage("Install Tomcat Software") {
             steps {
-                withCredentials([file(credentialsId: 'TomcatServer_SSH_Credential', variable: 'pem')]) {
-                    sh """
-                    ansible-playbook \
-                    -i hosts \
-                    installTomcat.yaml \
-                    -e ansible_ssh_private_key_file=${pem} \
-                    --ssh-common-args='-o StrictHostKeyChecking=no'
-                    """
-                }
+                sshagent(['TomcatServer_SSH_Credential']) {
+    sh """
+    ansible-playbook \
+    -i hosts \
+    installTomcat.yaml \
+    --ssh-common-args='-o StrictHostKeyChecking=no'
+    """
+}
             }
         }
     }

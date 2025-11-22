@@ -1,6 +1,6 @@
 galaxy_info:
   author: Sandra O
-  description: Configure Tomcat in Amazon
+  description: Configure Tomcat in Amazon Linux
   company: your company (optional)
 
   # If the issue tracker for your role is not on github, uncomment the

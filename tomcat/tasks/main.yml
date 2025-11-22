@@ -26,6 +26,12 @@
         dest: "/opt/{{ java_archive }}"
         mode: '0644'
 
+    - name: Ensure Java directory exists
+      file:
+        path: "{{ java_dir }}"
+        state: directory
+        mode: '0755'
+
     - name: Extract Java to directory
       unarchive:
         src: "/opt/{{ java_archive }}"
@@ -57,6 +63,12 @@
         dest: "/opt/{{ tomcat_archive }}"
         mode: '0644'
 
+    - name: Ensure Tomcat directory exists
+      file:
+      path: "{{ tomcat_dir }}"
+      state: directory
+      mode: '0755'
+      
     - name: Extract Tomcat
       unarchive:
         src: "/opt/{{ tomcat_archive }}"
@@ -131,4 +143,3 @@
     dest: /etc/systemd/system/tomcat.service
     mode: "0644"
   notify: Restart Tomcat
-

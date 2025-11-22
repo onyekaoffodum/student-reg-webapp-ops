@@ -35,7 +35,7 @@ pipeline {
     sh """
     ansible-playbook \
     -i hosts \
-    installTomcat.yaml \
+    install_tomcat.yaml \
     --ssh-common-args='-o StrictHostKeyChecking=no'
     """
 }

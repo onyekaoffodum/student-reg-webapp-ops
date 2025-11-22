@@ -139,7 +139,7 @@
 # ---------------------------
 - name: Create systemd service for Tomcat
   template:
-    src: tomcat.service.j2
+    src: config.j2
     dest: /etc/systemd/system/tomcat.service
     mode: "0644"
   notify: Restart Tomcat

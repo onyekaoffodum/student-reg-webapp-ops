@@ -1,4 +1,4 @@
-- hosts: tomcatServer
+- hosts: tomcatServers
   become: true
   roles: 
     - tomcat

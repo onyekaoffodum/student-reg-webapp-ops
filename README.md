@@ -11,15 +11,15 @@ student-reg-webapp-ops/
 ├── hosts                  # Inventory file listing target servers
 ├── install_tomcat.yaml    # Main playbook for installing Tomcat and Java
 ├── tomcat/                # Ansible role for Tomcat installation
-│   ├── tasks/
-│   │   └── main.yaml      # Tasks for preparing environment, installing Java & Tomcat
 │   ├── handlers/
 │   │   └── main.yaml      # Handlers such as Restart Tomcat
 │   ├── meta/
 │   │   └── main.yaml      # Role metadata (dependencies, author, license)
+│   ├── tasks/
+│   │   └── main.yaml      # Tasks for preparing environment, installing Java & Tomcat
 │   ├── templates/
 │   │   └── config.j2      # Systemd service template for Tomcat
-│   └── vars/               # Optional variables for the role
+│   └── vars/              # Variables for the role
 └── README.md
 ```
 

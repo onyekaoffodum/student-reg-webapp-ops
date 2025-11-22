@@ -65,10 +65,10 @@
 
     - name: Ensure Tomcat directory exists
       file:
-      path: "{{ tomcat_dir }}"
-      state: directory
-      mode: '0755'
-      
+        path: "{{ tomcat_dir }}"
+        state: directory
+        mode: '0755'
+
     - name: Extract Tomcat
       unarchive:
         src: "/opt/{{ tomcat_archive }}"
